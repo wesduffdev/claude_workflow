@@ -1,0 +1,15 @@
+{
+  "PROJECT_NAME": "acme-billing",
+  "PROJECT_DESC": "a billing service",
+  "GH_OWNER": "acme",
+  "GH_REPO": "billing",
+  "WIKI_URL": "https://github.com/acme/billing/wiki",
+  "WIKI_GIT_URL": "https://github.com/acme/billing.wiki.git",
+  "MCP_SERVER": "linear-acme",
+  "LINEAR_TEAM": "BILL",
+  "DEFAULT_PROJECT": "Platform",
+  "BUILD_CMD": "npm ci",
+  "TEST_CMD": "npm test",
+  "CONNECTIVITY_CMD": "npm run check",
+  "REPO_MAP": "src/acme_billing/    application source\n  tests/               the test suite\n  .github/workflows/   CI pipelines"
+}

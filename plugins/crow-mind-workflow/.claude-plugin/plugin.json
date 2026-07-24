@@ -1,0 +1,9 @@
+{
+  "name": "crow-mind-workflow",
+  "description": "Stamp any repo with the crow-mind engineering-governance workflow and keep it in sync.",
+  "version": "0.1.0",
+  "author": { "name": "wesduffdev" },
+  "homepage": "https://github.com/wesduffdev/claude_workflow",
+  "repository": "https://github.com/wesduffdev/claude_workflow",
+  "license": "MIT"
+}

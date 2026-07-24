@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__{{MCP_SERVER}}__get_*",
+      "mcp__{{MCP_SERVER}}__list_*",
+      "mcp__{{MCP_SERVER}}__search_*",
+      "mcp__{{MCP_SERVER}}__extract_images"
+    ],
+    "ask": [
+      "mcp__{{MCP_SERVER}}__save_*",
+      "mcp__{{MCP_SERVER}}__create_*",
+      "mcp__{{MCP_SERVER}}__submit_*",
+      "mcp__{{MCP_SERVER}}__resolve_*",
+      "mcp__{{MCP_SERVER}}__merge_*",
+      "mcp__{{MCP_SERVER}}__prepare_*"
+    ],
+    "deny": [
+      "mcp__{{MCP_SERVER}}__delete_*"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "mcp__{{MCP_SERVER}}__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/mcp-audit.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

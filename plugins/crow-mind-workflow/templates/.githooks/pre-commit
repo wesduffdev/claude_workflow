@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+#
+# Guard hook: refuse direct commits to the protected branch(es).
+# Enable once per clone with:  git config core.hooksPath .githooks
+#
+# Rationale (see CLAUDE.md): main only ever advances through a human-approved
+# PR merge. All work happens in a git worktree on a feature branch.
+
+set -euo pipefail
+
+protected_branches="main master"
+
+branch="$(git symbolic-ref --short HEAD 2>/dev/null || echo "")"
+
+for protected in $protected_branches; do
+  if [ "$branch" = "$protected" ]; then
+    echo "✖ Refusing to commit directly to '$protected'." >&2
+    echo "  Create a worktree + feature branch first:" >&2
+    echo "    git worktree add ../worktrees/feat-x -b feat/x origin/main" >&2
+    echo "  See CLAUDE.md and the worktree-pr-workflow skill." >&2
+    exit 1
+  fi
+done
+
+exit 0
