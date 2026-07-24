@@ -77,8 +77,12 @@ class RenderError(Exception):
     """Raised when rendering leaves one or more placeholders unsubstituted."""
 
 
-def _substitute(text: str, slots: dict) -> str:
-    """Replace every known ``{{KEY}}`` in *text*; leave unknown tokens intact."""
+def substitute(text: str, slots: dict) -> str:
+    """Replace every known ``{{KEY}}`` in *text*; leave unknown tokens intact.
+
+    Public entry point of the shared render engine — stamp.py (init-repo) and
+    sync-baseline reuse this so substitution lives in exactly one place.
+    """
 
     def replace(match: re.Match) -> str:
         key = match.group(1)
@@ -120,7 +124,7 @@ def render_tree(slots: dict, templates_dir: Path, out_dir: Path) -> list:
 
     for src, rel in _iter_template_files(templates_dir):
         original = src.read_text(encoding="utf-8")
-        result = _substitute(original, slots)
+        result = substitute(original, slots)
 
         dst = out_dir / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
@@ -144,17 +148,26 @@ def render_tree(slots: dict, templates_dir: Path, out_dir: Path) -> list:
     return rendered
 
 
-def _load_slots(path: Path) -> dict:
-    """Load a flat JSON object of slot values from *path*."""
+def load_slots(path: Path) -> dict:
+    """Load a flat JSON object of slot values from *path*.
+
+    Public entry point of the shared render engine (see :func:`substitute`).
+    """
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise SystemExit(f"error: {path} must contain a JSON object of slot values")
     return data
 
 
+# Backward-compatible aliases: the underscore names predate the public API. Kept
+# so any earlier caller keeps working; new code should use the public names.
+_substitute = substitute
+_load_slots = load_slots
+
+
 def run_render(slots_path: Path, templates_dir: Path, out_dir: Path) -> int:
     """Handle the ``--slots/--templates/--out`` invocation. Returns an exit code."""
-    slots = _load_slots(slots_path)
+    slots = load_slots(slots_path)
     try:
         rendered = render_tree(slots, templates_dir, out_dir)
     except RenderError as exc:
@@ -209,7 +222,7 @@ def run_self_test() -> int:
         print(f"FAIL: sample slots not found at {SAMPLE_SLOTS_PATH}", file=sys.stderr)
         return 1
 
-    slots = _load_slots(SAMPLE_SLOTS_PATH)
+    slots = load_slots(SAMPLE_SLOTS_PATH)
 
     with tempfile.TemporaryDirectory(prefix="cmw-selftest-") as tmp:
         out_dir = Path(tmp)
