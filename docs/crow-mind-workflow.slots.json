@@ -1,0 +1,15 @@
+{
+  "PROJECT_NAME": "crow-mind-workflow",
+  "PROJECT_DESC": "a Claude Code plugin that packages a reusable engineering-governance workflow (worktree->PR, Linear vertical-slice ticketing, the MCP Tool Gateway, wave planning, and Wiki docs) as installable, parameterized templates any repo can be stamped with",
+  "GH_OWNER": "wesduffdev",
+  "GH_REPO": "claude_workflow",
+  "WIKI_URL": "https://github.com/wesduffdev/claude_workflow/wiki",
+  "WIKI_GIT_URL": "https://github.com/wesduffdev/claude_workflow.wiki.git",
+  "MCP_SERVER": "linear-personal",
+  "LINEAR_TEAM": "CRO",
+  "DEFAULT_PROJECT": "Init Team",
+  "BUILD_CMD": "python3 --version",
+  "TEST_CMD": "bash plugins/crow-mind-workflow/scripts/e2e_test.sh",
+  "CONNECTIVITY_CMD": "bash plugins/crow-mind-workflow/scripts/check-version.sh",
+  "REPO_MAP": ".claude-plugin/marketplace.json   the crow-mind marketplace (lists the plugin)\nplugins/crow-mind-workflow/        the installable plugin\n  .claude-plugin/plugin.json       name + version (bumped per release)\n  skills/                          init-repo, sync-baseline, version-check\n  templates/                       the parameterized governance baseline to stamp\n  wiki-templates/                  the Workflow / Home / _Sidebar wiki pages\n  scripts/                         render, stamp, sync_baseline, publish_wiki, check-version\n  hooks/hooks.json                 SessionStart version check\ndocs/                              LPD.md + wave.yml (planning)"
+}
