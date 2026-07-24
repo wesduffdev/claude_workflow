@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crow-mind.dev/schemas/crow-mind-workflow/baseline-manifest.schema.json",
+  "title": "Workflow Baseline Manifest",
+  "description": "Per-repo record written by the crow-mind-workflow init-repo skill to .claude/.workflow-baseline.json. It captures which plugin version stamped the repo, the slot values used, and a content hash of every stamped file. The sync-baseline skill diffs a repo against this manifest (and the plugin's current templates) to detect drift.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pluginName",
+    "pluginVersion",
+    "templateSetVersion",
+    "stampedAt",
+    "slots",
+    "files"
+  ],
+  "properties": {
+    "pluginName": {
+      "type": "string",
+      "description": "Identifier of the plugin that stamped this repo (e.g. \"crow-mind-workflow\").",
+      "minLength": 1
+    },
+    "pluginVersion": {
+      "type": "string",
+      "description": "Semantic version of the plugin at stamp time. sync-baseline compares this to the installed plugin version to tell whether the repo is behind.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z-.]+)?(?:\\+[0-9A-Za-z-.]+)?$"
+    },
+    "templateSetVersion": {
+      "type": "string",
+      "description": "Version of the template set stamped into the repo. Bumps when the templates change even if the plugin version does not; lets sync-baseline detect template-only drift.",
+      "minLength": 1
+    },
+    "stampedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when the baseline was stamped or last updated."
+    },
+    "slots": {
+      "type": "object",
+      "description": "The slot values (key -> value) supplied during the init-repo interview and substituted into the templates. Keys match the slot keys defined in templates/slots.yml.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "files": {
+      "type": "array",
+      "description": "One entry per file stamped into the repo, recording where it landed, which template it came from, and a content hash for drift detection.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "template",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Repo-relative path of the stamped file (e.g. \".claude/rules/ticketing.md\").",
+            "minLength": 1
+          },
+          "template": {
+            "type": "string",
+            "description": "Plugin-relative path of the source template this file was rendered from (e.g. \"templates/.claude/rules/ticketing.md\").",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "description": "Lowercase hex SHA-256 of the rendered file's content at stamp time. sync-baseline recomputes this to detect local edits.",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  }
+}
