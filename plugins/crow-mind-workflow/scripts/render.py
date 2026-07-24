@@ -188,8 +188,13 @@ def _find_json_failures(out_dir: Path) -> list:
     return failures
 
 
-def _find_forbidden_hits(out_dir: Path) -> list:
-    """Return (path, literal) for every forbidden literal found in the output."""
+def find_forbidden_hits(out_dir: Path) -> list:
+    """Return (path, literal) for every forbidden literal found under *out_dir*.
+
+    Public entry point of the shared render engine (see :func:`substitute`): a rendered
+    tree must not leak any source-specific literal in :data:`FORBIDDEN_LITERALS`.
+    Reused by every stamping surface so the check lives in exactly one place.
+    """
     hits = []
     for path in sorted(out_dir.rglob("*")):
         if not path.is_file():
@@ -201,8 +206,12 @@ def _find_forbidden_hits(out_dir: Path) -> list:
     return hits
 
 
-def _find_placeholder_files(out_dir: Path) -> list:
-    """Return (path, tokens) for every rendered file that still has ``{{``."""
+def find_placeholder_files(out_dir: Path) -> list:
+    """Return (path, tokens) for every file under *out_dir* that still has ``{{``.
+
+    Public entry point of the shared render engine (see :func:`substitute`): a defense-
+    in-depth check that no ``{{...}}`` placeholder survived rendering.
+    """
     offenders = []
     for path in sorted(out_dir.rglob("*")):
         if not path.is_file():
@@ -211,6 +220,12 @@ def _find_placeholder_files(out_dir: Path) -> list:
         if "{{" in text:
             offenders.append((path.relative_to(out_dir), _leftover_tokens(text)))
     return offenders
+
+
+# Backward-compatible aliases: the underscore names predate the public API. Kept so
+# any earlier caller keeps working; new code should use the public names.
+_find_forbidden_hits = find_forbidden_hits
+_find_placeholder_files = find_placeholder_files
 
 
 def run_self_test() -> int:
@@ -236,7 +251,7 @@ def run_self_test() -> int:
             return 1
 
         # (a) Defense-in-depth: no `{{` anywhere in the rendered output.
-        placeholder_files = _find_placeholder_files(out_dir)
+        placeholder_files = find_placeholder_files(out_dir)
         if placeholder_files:
             print("FAIL (a): `{{` found in rendered output:", file=sys.stderr)
             for path, tokens in placeholder_files:
@@ -252,7 +267,7 @@ def run_self_test() -> int:
             return 1
 
         # (c) No source-specific literal leaked through.
-        forbidden = _find_forbidden_hits(out_dir)
+        forbidden = find_forbidden_hits(out_dir)
         if forbidden:
             print("FAIL (c): forbidden source literal(s) in rendered output:", file=sys.stderr)
             for path, literal in forbidden:
