@@ -1,0 +1,13 @@
+{
+  "name": "crow-mind",
+  "owner": { "name": "wesduffdev" },
+  "description": "Crow Mind — an engineering-governance workflow for Claude Code, packaged as an installable plugin.",
+  "plugins": [
+    {
+      "name": "crow-mind-workflow",
+      "source": "./plugins/crow-mind-workflow",
+      "description": "Stamp any repo with the crow-mind governance workflow (worktree->PR, Linear vertical-slice ticketing, the MCP Tool Gateway, wave planning, Wiki docs). Provides the init-repo, sync-baseline, and version-check skills.",
+      "version": "0.1.0"
+    }
+  ]
+}
