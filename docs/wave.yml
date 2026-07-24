@@ -1,0 +1,116 @@
+plan: crow-mind-workflow plugin
+team: CRO
+project: crow-mind-workflow          # PROJECT tag, rendered as P-crow-mind-workflow in titles
+linearProject: Init Team             # actual Linear project the issues roll up under (default)
+source_lpd: docs/LPD.md
+parent:
+  title: "[CRO][P-crow-mind-workflow] crow-mind-workflow plugin"
+  id: CRO-10                         # https://linear.app/crow-mind/issue/CRO-10
+
+waves:
+  - wave: 1
+    tickets:
+      - name: Marketplace & plugin shell
+        slice: S1
+        title: "[CRO][P-crow-mind-workflow][Wave 1] Marketplace & plugin shell"
+        description: >
+          Installable marketplace + plugin skeleton. .claude-plugin/marketplace.json
+          (marketplace "crow-mind"); plugins/crow-mind-workflow/.claude-plugin/plugin.json
+          (name crow-mind-workflow, version 0.1.0, author/repo/license); root README.md
+          with the copy-paste install command; CI running `claude plugin validate .`.
+          Done when `/plugin marketplace add wesduffdev/claude_workflow` +
+          `/plugin install crow-mind-workflow@crow-mind` succeeds.
+        dependsOn: []
+        id: CRO-11                    # https://linear.app/crow-mind/issue/CRO-11
+
+      - name: Baseline templates & slot scheme
+        slice: S2
+        title: "[CRO][P-crow-mind-workflow][Wave 1] Baseline templates & slot scheme"
+        description: >
+          Port the whole oodo-agent workflow into plugins/crow-mind-workflow/templates/
+          with {{SLOT}} placeholders — CLAUDE.md, .claude/rules/*, .claude/agents/*, the
+          five workflow skills, .claude/hooks/* + settings.json, .githooks/*, README
+          governance index, PR template. Plus slots.yml (prompt/default/validation) and
+          baseline-manifest.schema.json. Done when a sample render produces a coherent,
+          placeholder-free .claude/ tree (dry-run render test passes).
+        dependsOn: []
+        id: CRO-12                    # https://linear.app/crow-mind/issue/CRO-12
+
+  - wave: 2
+    tickets:
+      - name: init-repo stamper skill
+        slice: S3
+        title: "[CRO][P-crow-mind-workflow][Wave 2] init-repo stamper skill"
+        description: >
+          plugins/crow-mind-workflow/skills/init-repo/SKILL.md (+ helper). Asks root vs
+          nested stamp; interviews for the S2 slots; renders templates into the target
+          repo (CLAUDE.md, .claude/{rules,agents,skills,hooks,settings.json}, .githooks/,
+          README governance pointer, PR template); writes the baseline manifest recording
+          plugin version + slot values + file hashes; prints the core.hooksPath enablement;
+          idempotent on re-run. Done when a scratch repo gets a fully-stamped,
+          placeholder-free governance tree recorded in a manifest.
+        dependsOn: [Marketplace & plugin shell, Baseline templates & slot scheme]
+        id: CRO-13                    # https://linear.app/crow-mind/issue/CRO-13 (blockedBy CRO-11, CRO-12)
+
+      - name: Version-check mechanism
+        slice: S4
+        title: "[CRO][P-crow-mind-workflow][Wave 2] Version-check mechanism"
+        description: >
+          plugins/crow-mind-workflow/hooks/hooks.json SessionStart hook →
+          scripts/check-version.sh fetches the published marketplace.json, compares to the
+          installed plugin.json version, caches the verdict to
+          ${CLAUDE_PLUGIN_DATA}/version-status.json, and emits a systemMessage with update
+          instructions when behind. A version-check skill + preflight the three skills call
+          reads the cache so every skill/tool use surfaces the reminder without re-fetching.
+          Done when a behind plugin.json surfaces update instructions; silent when current.
+        dependsOn: [Marketplace & plugin shell]
+        id: CRO-14                    # https://linear.app/crow-mind/issue/CRO-14 (blockedBy CRO-11)
+
+  - wave: 3
+    tickets:
+      - name: Wiki publish on stamp
+        slice: S5
+        title: "[CRO][P-crow-mind-workflow][Wave 3] Wiki publish on stamp"
+        description: >
+          Extend init-repo to detect whether the target repo's GitHub Wiki is available
+          (git ls-remote <owner>/<repo>.wiki.git). If available: clone it, render/update
+          Workflow.md from a template (mirroring the source repo's Workflow page), commit
+          and push; seed Home.md/_Sidebar.md if empty. If unavailable: skip gracefully with
+          guidance on enabling the Wiki. Uses the WIKI_URL/GH_* slots. Done when a repo with
+          a Wiki gets a Workflow page and one without skips without failing.
+        dependsOn: [init-repo stamper skill]
+        id: CRO-15                    # https://linear.app/crow-mind/issue/CRO-15 (blockedBy CRO-13)
+
+      - name: sync-baseline skill
+        slice: S6
+        title: "[CRO][P-crow-mind-workflow][Wave 3] sync-baseline skill"
+        description: >
+          plugins/crow-mind-workflow/skills/sync-baseline/SKILL.md (+ helper). Reads the
+          repo's baseline manifest, re-renders each template with the recorded slot values,
+          and reports drift: files behind current templates, files modified locally
+          (conflict), templates added since the stamp, unfilled/renamed slots, and whether
+          the recorded plugin version trails the installed one. Approval-gated update applies
+          the newer baseline and bumps the manifest version. Done when a repo stamped at vN
+          vs a plugin at vN+1 reports drift and can update on approval.
+        dependsOn: [Baseline templates & slot scheme, init-repo stamper skill]
+        id: CRO-16                    # https://linear.app/crow-mind/issue/CRO-16 (blockedBy CRO-12, CRO-13)
+
+  - wave: 4
+    tickets:
+      - name: Docs, Wiki dogfood & e2e walkthrough
+        slice: S7
+        title: "[CRO][P-crow-mind-workflow][Wave 4] Docs, Wiki dogfood & e2e walkthrough"
+        description: >
+          Full root README (marketplace overview, plugin usage, skill catalog, update flow)
+          and plugin README; dogfood requirement #5 by publishing claude_workflow's own
+          GitHub Wiki with a Workflow page; documented end-to-end walkthrough test:
+          marketplace add → install → init-repo on a sample repo → verify Wiki page → bump
+          version → confirm version-check surfaces → sync-baseline updates. Done when a new
+          user can install and stamp from the README alone and the repo's own Wiki has a
+          Workflow page.
+        dependsOn:
+          - init-repo stamper skill
+          - Version-check mechanism
+          - Wiki publish on stamp
+          - sync-baseline skill
+        id: CRO-17                    # https://linear.app/crow-mind/issue/CRO-17 (blockedBy CRO-13, CRO-14, CRO-15, CRO-16)
