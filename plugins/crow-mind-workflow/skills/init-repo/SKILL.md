@@ -106,10 +106,43 @@ Tell the user:
   crow-mind template was written to `.github/pull_request_template.crow-mind.md`
   instead. The user should merge the checklist they want into their own template.
 
-## (5) Wiki publishing — later slice
+## (5) Publish the Workflow page to the Wiki (approval-gated)
 
-GitHub **Wiki publishing (the Workflow page)** is **not** performed here. It arrives
-in a later slice (S5): after stamping, that slice will detect whether the target's
-Wiki is available (via `WIKI_GIT_URL`), clone it, and publish/update the Workflow
-page. **Leave this as a follow-up step — do not attempt any Wiki writes from
-init-repo.**
+After a **successful** stamp, offer to publish the living **Workflow** page (and, if
+the wiki is brand-new, a `Home` and `_Sidebar`) to the target repo's GitHub Wiki. The
+wiki is a separate git repository derived from `WIKI_GIT_URL`; the pages come from
+`${CLAUDE_PLUGIN_ROOT}/wiki-templates/` and are rendered with the **same** slot values
+you just stamped with (reuse the temp values JSON from step 3).
+
+Pushing to the wiki is a **PUBLISH** — a protected write — so it is **never
+automatic**. It happens only after the user explicitly confirms.
+
+**(5a) Check availability + preview (no push).**
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/publish_wiki.py" \
+  --slots <temp-values.json> --dry-run
+```
+
+- If the script reports the **wiki is not available**, it prints enable-wiki guidance
+  and exits cleanly. Relay that guidance to the user (enable **Wiki** in the repo's
+  GitHub settings, create the first page once in the UI, then re-run) and **continue**
+  — the stamp already succeeded; wiki publishing is a bonus, not a failure.
+- If the **wiki is available**, the script prints the pages it would write and the
+  **full rendered Workflow page** (not a truncated preview). **Present that entire
+  rendered Workflow page to the user and ask for explicit confirmation** before
+  publishing — the human approves the complete content, not a snippet of it.
+
+**(5b) Publish only on confirmation.**
+
+Once the user confirms, publish with `--push` (dropping `--dry-run`):
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/publish_wiki.py" \
+  --slots <temp-values.json> --push
+```
+
+- The Workflow page is always (re)published; `Home`/`_Sidebar` are seeded **only if
+  the wiki does not already have them** (an existing curated Home is never clobbered).
+- If the user declines, do not push — the Workflow page can be published later by
+  re-running this step.
