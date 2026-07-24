@@ -97,15 +97,19 @@ def _read_plugin_version() -> str:
     return str(version)
 
 
-def _now_iso_utc() -> str:
-    """Current time as an ISO-8601 UTC timestamp (e.g. 2026-07-24T18:03:11Z)."""
+def now_iso_utc() -> str:
+    """Current time as an ISO-8601 UTC timestamp (e.g. 2026-07-24T18:03:11Z).
+
+    Public: sync-baseline restamps ``stampedAt`` with this on ``--apply``, so it is
+    a supported entry point of the shared stamping toolkit.
+    """
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 # --------------------------------------------------------------------------- #
 # Rendering + placement
 # --------------------------------------------------------------------------- #
-def _strip_dangling_connectivity(stage_dir: Path, slots: dict) -> bool:
+def strip_dangling_connectivity(stage_dir: Path, slots: dict) -> bool:
     """Drop the connectivity comment line when ``CONNECTIVITY_CMD`` is empty.
 
     Works line-for-line: the source lines carrying ``{{CONNECTIVITY_CMD}}`` are
@@ -113,6 +117,10 @@ def _strip_dangling_connectivity(stage_dir: Path, slots: dict) -> bool:
     rendered text, then those lines are removed from the staged output. Reusing the
     render primitive keeps this in lockstep with whole-file rendering. Returns True
     if any line was removed.
+
+    Public: sync-baseline's expected-content builder calls this so its notion of a
+    stamped file is byte-for-byte identical to a real stamp — the strip lives in
+    exactly one place.
     """
     if slots.get("CONNECTIVITY_CMD", "").strip():
         return False  # a real command was supplied — keep the line
@@ -147,12 +155,15 @@ def _strip_dangling_connectivity(stage_dir: Path, slots: dict) -> bool:
     return removed
 
 
-def _prior_owns_primary(prior_manifest) -> bool:
+def prior_owns_primary(prior_manifest) -> bool:
     """True if a prior baseline recorded the primary PR template as *ours*.
 
     Distinguishes "our own previously-stamped template sitting at the primary path"
     (safe to overwrite in place on a ``--force`` re-stamp) from a genuinely FOREIGN
     template the repo already shipped (which we must not clobber).
+
+    Public: sync-baseline reuses this (with :func:`target_relpath`) to place a
+    newly-added template at the same destination a stamp would choose.
     """
     if not prior_manifest:
         return False
@@ -164,7 +175,7 @@ def _prior_owns_primary(prior_manifest) -> bool:
     )
 
 
-def _target_relpath(
+def target_relpath(
     rel: Path, mode: str, subdir: str, probe_root: Path, prior_owns_primary: bool
 ) -> Path:
     """Map a rendered relative path to its destination relative to the target.
@@ -172,6 +183,10 @@ def _target_relpath(
     ``probe_root`` is inspected (not written) to resolve the PR-template collision;
     ``prior_owns_primary`` says whether an existing primary template is one we
     stamped before (overwrite in place) rather than the repo's own (divert).
+
+    Public: sync-baseline routes a newly-added template through this so relocated
+    files (the PR template, nested-mode CLAUDE.md) land where a stamp would put
+    them — placement logic is not duplicated in the sync tool.
     """
     if rel == Path("CLAUDE.md"):
         return (Path(subdir) / "CLAUDE.md") if mode == "nested" else Path("CLAUDE.md")
@@ -184,11 +199,25 @@ def _target_relpath(
     return rel
 
 
-def _sha256_file(path: Path) -> str:
-    """Lowercase hex SHA-256 of a file's bytes."""
+def sha256_file(path: Path) -> str:
+    """Lowercase hex SHA-256 of a file's bytes.
+
+    Public: sync-baseline hashes on-disk files with this to compare against manifest
+    hashes, so both tools hash identically.
+    """
     digest = hashlib.sha256()
     digest.update(path.read_bytes())
     return digest.hexdigest()
+
+
+# Back-compat aliases: these members were underscore-private before sync-baseline
+# reused them. They are now the shared stamping toolkit's supported (public) surface;
+# the underscore names remain so any earlier caller keeps working.
+_now_iso_utc = now_iso_utc
+_strip_dangling_connectivity = strip_dangling_connectivity
+_prior_owns_primary = prior_owns_primary
+_target_relpath = target_relpath
+_sha256_file = sha256_file
 
 
 def _place(
@@ -212,13 +241,13 @@ def _place(
         except render.RenderError as exc:
             raise StampError(str(exc)) from exc
 
-        connectivity_omitted = _strip_dangling_connectivity(stage_dir, slots)
+        connectivity_omitted = strip_dangling_connectivity(stage_dir, slots)
 
         entries = []
         pr_collision = False
         for rel_str in rendered:
             rel = Path(rel_str)
-            dest_rel = _target_relpath(rel, mode, subdir, probe_root, prior_owns_primary)
+            dest_rel = target_relpath(rel, mode, subdir, probe_root, prior_owns_primary)
             if dest_rel == PR_TEMPLATE_FALLBACK:
                 pr_collision = True
 
@@ -231,7 +260,7 @@ def _place(
                 {
                     "path": dest_rel.as_posix(),
                     "template": (Path("templates") / rel).as_posix(),
-                    "sha256": _sha256_file(dst),
+                    "sha256": sha256_file(dst),
                 }
             )
 
@@ -438,7 +467,7 @@ def run_stamp(slots, target, mode, subdir, dry_run, force, version=None):
     schema = _load_schema()
     prior_manifest = _read_baseline(target)
     existing = prior_manifest.get("pluginVersion") if prior_manifest else None
-    prior_owns_primary = _prior_owns_primary(prior_manifest)
+    owns_primary = prior_owns_primary(prior_manifest)
 
     if existing is not None and not force and not dry_run:
         raise StampError(
@@ -446,12 +475,12 @@ def run_stamp(slots, target, mode, subdir, dry_run, force, version=None):
             f"Re-run with --force to re-stamp."
         )
 
-    stamped_at = _now_iso_utc()
+    stamped_at = now_iso_utc()
 
     if dry_run:
         with tempfile.TemporaryDirectory(prefix="cmw-dryrun-") as tmp:
             write_root = Path(tmp)
-            entries, notes = _place(slots, write_root, target, mode, subdir, prior_owns_primary)
+            entries, notes = _place(slots, write_root, target, mode, subdir, owns_primary)
             manifest = _build_manifest(slots, entries, version, stamped_at)
             _write_baseline(write_root, manifest)
             problems = _verify(write_root, entries, schema)
@@ -464,7 +493,7 @@ def run_stamp(slots, target, mode, subdir, dry_run, force, version=None):
             if p and p not in new_paths and (target / p).is_file()
         ]
     else:
-        entries, notes = _place(slots, target, target, mode, subdir, prior_owns_primary)
+        entries, notes = _place(slots, target, target, mode, subdir, owns_primary)
         manifest = _build_manifest(slots, entries, version, stamped_at)
         _write_baseline(target, manifest)
         new_paths = {e["path"] for e in entries}
