@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+#
+# Guard hook: refuse pushes to the protected branch(es).
+# Enable once per clone with:  git config core.hooksPath .githooks
+#
+# Rationale (see CLAUDE.md): main is updated only by merging an approved PR.
+
+set -euo pipefail
+
+protected_branches="main master"
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  for protected in $protected_branches; do
+    if [ "$remote_ref" = "refs/heads/$protected" ]; then
+      echo "✖ Refusing to push to '$protected'." >&2
+      echo "  Push your feature branch and open a PR instead:" >&2
+      echo "    git push -u origin <your-branch> && gh pr create --base $protected" >&2
+      echo "  See CLAUDE.md and the worktree-pr-workflow skill." >&2
+      exit 1
+    fi
+  done
+done
+
+exit 0

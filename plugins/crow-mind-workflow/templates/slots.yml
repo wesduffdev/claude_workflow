@@ -1,0 +1,107 @@
+# slots.yml — slot definitions for the crow-mind-workflow baseline templates.
+#
+# The init-repo interview reads this file to know what to ask the operator, what
+# defaults to offer, and which answers are mandatory. Each answer fills the
+# matching {{KEY}} placeholder throughout templates/ when the tree is stamped
+# into a target repo.
+#
+# This file is METADATA, not a stamped artifact: the render engine
+# (scripts/render.py) skips slots.yml when rendering the template tree — it is
+# never copied into a target repo.
+#
+# Fields per slot:
+#   key       - the placeholder name (used as {{KEY}} in the templates)
+#   prompt    - the interview question shown to the operator
+#   default   - a sensible pre-filled answer ("" when there is no universal one)
+#   required  - whether the operator must supply a value
+#   example   - an illustrative value
+
+slots:
+  - key: PROJECT_NAME
+    prompt: "Project display name (as it should read in CLAUDE.md and the README)?"
+    default: ""
+    required: true
+    example: "acme-billing"
+
+  - key: PROJECT_DESC
+    prompt: "One-line description of what this project does?"
+    default: ""
+    required: true
+    example: "a billing service for subscription invoices"
+
+  - key: GH_OWNER
+    prompt: "GitHub owner or organization for this repository?"
+    default: ""
+    required: true
+    example: "acme"
+
+  - key: GH_REPO
+    prompt: "GitHub repository name?"
+    default: ""
+    required: true
+    example: "billing"
+
+  # WIKI_URL is DERIVED from GH_OWNER/GH_REPO by default:
+  #   https://github.com/<GH_OWNER>/<GH_REPO>/wiki
+  # The interview offers the derived value; override only for a non-GitHub wiki.
+  - key: WIKI_URL
+    prompt: "Wiki URL (defaults to https://github.com/<GH_OWNER>/<GH_REPO>/wiki)?"
+    default: "https://github.com/{{GH_OWNER}}/{{GH_REPO}}/wiki"
+    required: false
+    example: "https://github.com/acme/billing/wiki"
+
+  # WIKI_GIT_URL is DERIVED from GH_OWNER/GH_REPO by default:
+  #   https://github.com/<GH_OWNER>/<GH_REPO>.wiki.git
+  - key: WIKI_GIT_URL
+    prompt: "Wiki git clone URL (defaults to https://github.com/<GH_OWNER>/<GH_REPO>.wiki.git)?"
+    default: "https://github.com/{{GH_OWNER}}/{{GH_REPO}}.wiki.git"
+    required: false
+    example: "https://github.com/acme/billing.wiki.git"
+
+  - key: MCP_SERVER
+    prompt: "Name of the Linear MCP server connection (as it appears in tool names mcp__<server>__*)?"
+    default: "linear-personal"
+    required: true
+    example: "linear-acme"
+
+  - key: LINEAR_TEAM
+    prompt: "Linear team key issues are filed under?"
+    default: ""
+    required: true
+    example: "BILL"
+
+  - key: DEFAULT_PROJECT
+    prompt: "Default Linear project that new issues roll up under?"
+    default: ""
+    required: false
+    example: "Platform"
+
+  - key: BUILD_CMD
+    prompt: "Command to install dependencies / build the project?"
+    default: ""
+    required: true
+    example: "npm ci"
+
+  - key: TEST_CMD
+    prompt: "Command to run the test suite?"
+    default: ""
+    required: true
+    example: "npm test"
+
+  - key: CONNECTIVITY_CMD
+    prompt: "Command to verify external connectivity / setup (leave blank if none)?"
+    default: ""
+    required: false
+    example: "npm run check"
+
+  # REPO_MAP fills the app-specific portion of the CLAUDE.md "Repo map" code
+  # block (the generic .claude/ governance layout is kept verbatim in the
+  # template). Supply a short source tree for this repo.
+  - key: REPO_MAP
+    prompt: "Short source-tree map for this repo (the app-specific part of the Repo map)?"
+    default: ""
+    required: true
+    example: |
+      src/acme_billing/  application source
+      tests/             the test suite
+      .github/workflows/ CI pipelines
